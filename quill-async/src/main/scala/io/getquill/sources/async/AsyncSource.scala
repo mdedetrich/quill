@@ -29,11 +29,11 @@ abstract class AsyncSource[D <: SqlIdiom, N <: NamingStrategy, C <: Connection](
 
   type QueryResult[T] = Future[List[T]]
   type SingleQueryResult[T] = Future[T]
-  type ActionResult[T] = Future[Long]
-  type BatchedActionResult[T] = Future[List[Long]]
+  type ActionResult[T] = Future[Any]
+  type BatchedActionResult[T] = Future[List[Any]]
 
-  class ActionApply[T](f: List[T] => Future[List[Long]])(implicit ec: ExecutionContext)
-    extends Function1[List[T], Future[List[Long]]] {
+  class ActionApply[T](f: List[T] => Future[List[Any]])(implicit ec: ExecutionContext)
+    extends Function1[List[T], Future[List[Any]]] {
     def apply(params: List[T]) = f(params)
     def apply(param: T) = f(List(param)).map(_.head)
   }
@@ -51,7 +51,7 @@ abstract class AsyncSource[D <: SqlIdiom, N <: NamingStrategy, C <: Connection](
       case other                                   => f(pool)
     }
 
-  protected def extractActionResult(generated: Option[String])(result: DBQueryResult): Long
+  protected def extractActionResult(generated: Option[String])(result: DBQueryResult): Any
 
   protected def expandAction(sql: String, generated: Option[String]) = sql
 
@@ -72,7 +72,7 @@ abstract class AsyncSource[D <: SqlIdiom, N <: NamingStrategy, C <: Connection](
   }
 
   def executeBatch[T](sql: String, bindParams: T => BindedStatementBuilder[List[Any]] => BindedStatementBuilder[List[Any]] = (_: T) => identity[BindedStatementBuilder[List[Any]]] _, generated: Option[String] = None)(implicit ec: ExecutionContext): ActionApply[T] = {
-    def run(values: List[T]): Future[List[Long]] =
+    def run(values: List[T]): Future[List[Any]] =
       values match {
         case Nil =>
           Future.successful(List())
